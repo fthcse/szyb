@@ -180,6 +180,14 @@
       position:absolute; top:6px; left:8px; display:flex; gap:6px; align-items:center;
       pointer-events:none; flex-wrap:wrap;
     }
+    .grid-item .close-btn {
+      position:absolute; top:6px; right:8px; z-index:3;
+      width:20px; height:20px; line-height:18px; text-align:center;
+      background:rgba(20,26,40,.85); border:1px solid rgba(255,255,255,.3);
+      color:#ffb4b4; border-radius:50%; font-size:.9rem; font-weight:700;
+      cursor:pointer; user-select:none; transition:all .15s;
+    }
+    .grid-item .close-btn:hover { background:rgba(239,68,68,.92); color:#fff; border-color:#fff; }
     .grid-item .badge span {
       background:rgba(20,26,40,.82); border:1px solid rgba(82,148,255,.45);
       color:var(--accent2); border-radius:6px; padding:2px 7px;
@@ -237,8 +245,8 @@
 <header>
   <span class="icon">🌀</span>
   <div>
-    <h1>多模式气象预报查看器</h1>
-    <p>ECMWF / GTRAMS3KMEC / GRAPES9 / ECMWF‑Fine 华南产品·单产品多时次/多产品对比·请勿随意外传数值产品！</p>
+    <h1>广东多模式气象预报查看器</h1>
+    <p>ECMWF / GTRAMS3KMEC / GRAPES9 / ECMWF‑Fine 华南产品·单产品多时次/多产品对比·请勿随意外传数值产品</p>
   </div>
 </header>
 <div class="app-body">
@@ -318,7 +326,7 @@
       <div class="empty-state" id="emptyState">
         <div class="big-icon">🗺️</div>
         <p id="emptyMain">选择产品、UTC日期与00Z/12Z时次，点击加载查看预报图</p>
-        <p class="sub" id="emptySub">单产品模式：同屏显示该产品的 2/4/6/8 个连续时次；多产品模式：选中几个产品就同屏对比显示几张</p>
+        <p class="sub" id="emptySub">单产品模式：同屏显示该产品的1/2/4/6/8 个连续时次；多产品模式：选中几个产品就同屏对比显示几张</p>
       </div>
       <div class="grid" id="grid"></div>
     </div>
@@ -415,7 +423,7 @@ const GROUPS = [
 // ===================== 状态 =====================
 let mode       = 'single';   // single=单产品多时次 / multi=多产品对比
 let selected   = [{ model:'ecmwf', type:ECMWF_HN[0] }];
-let gridSize   = 4;          // 单产品模式：每页同时显示的时次数 2/4/6/8
+let gridSize   = 4;          // 单产品模式：每页同时显示的时次数1/2/4/6/8
 let steps      = [];         // 时次序列
 let currentIdx = 0;          // multi 模式：当前时次序号
 let currentPage = 0;         // single 模式：当前页号
@@ -533,7 +541,7 @@ function updateSidebar() {
   if (selected.length === 0) {
     hint.textContent = '已清空。请点击左侧选择至少 1 个产品后再加载。';
   } else if (mode === 'single') {
-    hint.textContent = '✓ 单产品·多时次模式：点选 1 个产品，同屏显示其 2/4/6/8 个连续时次。';
+    hint.textContent = '✓ 单产品·多时次模式：点选 1 个产品，同屏显示其1/2/4/6/8 个连续时次。';
   } else {
     hint.textContent = '✓ 多产品·对比模式：点击产品可多选，选中几个产品就同屏显示几张（可跨组混选）。';
   }
@@ -543,6 +551,7 @@ function clearSelection() {
   steps = [];
   currentIdx = 0;
   currentPage = 0;
+  hiddenSteps = new Set();
   document.getElementById('progressRow').innerHTML = '';
   const strip = document.getElementById('urlStrip');
   strip.style.display = 'none';
@@ -650,6 +659,49 @@ function setStepbar(l1, v1, l2, v2, l3, v3) {
 }
 
 // ===================== 渲染网格 =====================
+// 已跳过/关闭的时次（单产品模式，跨翻页保持），键 = model:typeId:step
+let hiddenSteps = new Set();
+function stepKey(sel, s) { return `${sel.model}:${sel.type.id}:${s}`; }
+// 移除某一张（手动关闭或加载失败自动跳过），并把剩余格子紧凑重排
+function removeSingleCell(item, s) {
+  if (!item || !item.parentNode) return;
+  const sel = selected[0];
+  if (sel) hiddenSteps.add(stepKey(sel, s));
+  item.remove();
+  const strip = document.getElementById('urlStrip');
+  [...strip.querySelectorAll('a')].forEach(a => {
+    if (a.textContent === `+${pad(s,3)}h`) a.remove();
+  });
+  recompactSingle();
+}
+function recompactSingle() {
+  const grid = document.getElementById('grid');
+  if (!grid) return;
+  const items = [...grid.querySelectorAll('.grid-item')];
+  const base = parseDate(dateStr);
+  if (!items.length) {
+    grid.classList.remove('show');
+    const empty = document.getElementById('emptyState');
+    if (empty) {
+      empty.style.display = 'flex';
+      document.getElementById('emptyMain').textContent = '该页时次均已跳过或关闭';
+      document.getElementById('emptySub').textContent = '加载失败/手动关闭的时次已自动跳过；点击“清空已选产品”可恢复。';
+    }
+    setStepbar('步长范围', '—', '对应 UTC 时间', '—', '页码', `${currentPage+1} / ${pageCount()}`);
+    showBadge(false);
+    return;
+  }
+  const n = items.length;
+  const { cols, rows } = layoutFor(n);
+  grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+  grid.style.gridTemplateRows    = `repeat(${rows}, 1fr)`;
+  const stepsNow = items.map(it => parseInt(it.dataset.step)).sort((a, b) => a - b);
+  const t0 = formatValidTime(base, stepsNow[0]);
+  const t1 = formatValidTime(base, stepsNow[stepsNow.length-1]);
+  setStepbar('步长范围', `+${pad(stepsNow[0],3)} ~ +${pad(stepsNow[stepsNow.length-1],3)} h`,
+             '对应 UTC 时间', stepsNow.length > 1 ? `${t0} ～ ${t1}` : t0,
+             '页码', `${currentPage+1} / ${pageCount()}`);
+}
 function renderGrid() {
   if (!steps.length) return;
   const serial = ++loadSerial;
@@ -664,13 +716,13 @@ function renderSingle(serial) {
   if (currentPage >= pages) currentPage = pages - 1;
   const start     = currentPage * gridSize;
   const pageSteps = steps.slice(start, start + gridSize);
-  const { cols, rows } = layoutFor(gridSize);
+  // 跳过已关闭 / 已失败自动隐藏的时次
+  const visSteps  = pageSteps.filter(s => !hiddenSteps.has(stepKey(sel, s)));
 
-  const t0 = formatValidTime(base, pageSteps[0]);
-  const t1 = formatValidTime(base, pageSteps[pageSteps.length-1]);
-  setStepbar('步长范围', `+${pad(pageSteps[0],3)} ~ +${pad(pageSteps[pageSteps.length-1],3)} h`,
-             '对应 UTC 时间', pageSteps.length > 1 ? `${t0} ～ ${t1}` : t0,
-             '页码', `${currentPage+1} / ${pages}`);
+  const grid  = document.getElementById('grid');
+  const empty = document.getElementById('emptyState');
+  const strip = document.getElementById('urlStrip');
+
   document.getElementById('btnPrev').textContent = '◀ 上一页';
   document.getElementById('btnNext').textContent = '下一页 ▶';
   document.getElementById('hintPrev').textContent = '上一页';
@@ -679,10 +731,31 @@ function renderSingle(serial) {
   document.getElementById('btnNext').disabled = currentPage >= pages - 1;
   updateProgressDots();
 
-  const strip = document.getElementById('urlStrip');
+  if (!visSteps.length) {
+    setStepbar('步长范围', '—', '对应 UTC 时间', '—', '页码', `${currentPage+1} / ${pages}`);
+    strip.style.display = 'none';
+    strip.innerHTML = '';
+    grid.classList.remove('show');
+    grid.innerHTML = '';
+    if (empty) {
+      empty.style.display = 'flex';
+      document.getElementById('emptyMain').textContent = '该页时次均已跳过或关闭';
+      document.getElementById('emptySub').textContent = '加载失败/手动关闭的时次已自动跳过；点击“清空已选产品”可恢复。';
+    }
+    showBadge(false);
+    return;
+  }
+
+  const { cols, rows } = layoutFor(visSteps.length);
+  const t0 = formatValidTime(base, visSteps[0]);
+  const t1 = formatValidTime(base, visSteps[visSteps.length-1]);
+  setStepbar('步长范围', `+${pad(visSteps[0],3)} ~ +${pad(visSteps[visSteps.length-1],3)} h`,
+             '对应 UTC 时间', visSteps.length > 1 ? `${t0} ～ ${t1}` : t0,
+             '页码', `${currentPage+1} / ${pages}`);
+
   strip.style.display = 'flex';
   strip.innerHTML = '';
-  pageSteps.forEach(s => {
+  visSteps.forEach(s => {
     const a = document.createElement('a');
     const url = buildUrlFor(sel.model, sel.type, dateStr, s);
     a.href = url; a.target = '_blank'; a.title = url;
@@ -690,8 +763,6 @@ function renderSingle(serial) {
     strip.appendChild(a);
   });
 
-  const grid  = document.getElementById('grid');
-  const empty = document.getElementById('emptyState');
   if (empty) empty.style.display = 'none';
   grid.classList.add('fade');
   grid.innerHTML = '';
@@ -700,11 +771,12 @@ function renderSingle(serial) {
   grid.classList.add('show');
 
   showBadge(true);
-  let pending = pageSteps.length;
-  pageSteps.forEach(s => {
+  let pending = visSteps.length;
+  visSteps.forEach(s => {
     const url = buildUrlFor(sel.model, sel.type, dateStr, s);
     const item = document.createElement('a');
     item.className = 'grid-item';
+    item.dataset.step = s;
     item.href = url; item.target = '_blank'; item.title = '新标签打开原图';
     const loadDiv = document.createElement('div');
     loadDiv.className = 'cell-load';
@@ -721,12 +793,9 @@ function renderSingle(serial) {
     };
     img.onerror = () => {
       if (serial !== loadSerial) return;
-      loadDiv.remove();
-      const err = document.createElement('div');
-      err.className = 'cell-err';
-      err.textContent = '图片加载失败\n该时次可能暂未发布';
-      item.appendChild(err);
       if (--pending <= 0) showBadge(false);
+      // 该时次图片未发布：自动跳过这一张，其余紧凑重排
+      removeSingleCell(item, s);
     };
     img.src = url;
     item.appendChild(img);
@@ -736,6 +805,13 @@ function renderSingle(serial) {
     const sp2 = document.createElement('span'); sp2.className = 'vt'; sp2.textContent = formatValidTime(base, s);
     badge.appendChild(sp1); badge.appendChild(sp2);
     item.appendChild(badge);
+    // 右上角 × 手动关闭这一张
+    const close = document.createElement('span');
+    close.className = 'close-btn';
+    close.textContent = '×';
+    close.title = '关闭这一张';
+    close.onclick = (e) => { e.preventDefault(); e.stopPropagation(); removeSingleCell(item, s); };
+    item.appendChild(close);
     grid.appendChild(item);
   });
   requestAnimationFrame(() => {
