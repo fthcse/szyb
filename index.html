@@ -297,6 +297,7 @@
           <option value="4" selected>4 张</option>
           <option value="6">6 张</option>
           <option value="8">8 张</option>
+          <option value="10">10 张</option>
         </select>
       </div>
       <div class="control-group">
@@ -439,7 +440,8 @@ function layoutFor(n) {
   if (n <= 2) return { cols:2, rows:1 };
   if (n <= 4) return { cols:2, rows:2 };   // 3 / 4
   if (n <= 6) return { cols:3, rows:2 };   // 5 / 6
-  return { cols:4, rows:2 };               // 7 / 8
+  if (n <= 8) return { cols:4, rows:2 };   // 7 / 8
+  return { cols:5, rows:2 };               // 9 / 10
 }
 
 // ===================== URL 构建 =====================
@@ -662,7 +664,60 @@ function setStepbar(l1, v1, l2, v2, l3, v3) {
 // 已跳过/关闭的时次（单产品模式，跨翻页保持），键 = model:typeId:step
 let hiddenSteps = new Set();
 function stepKey(sel, s) { return `${sel.model}:${sel.type.id}:${s}`; }
-// 移除某一张（手动关闭或加载失败自动跳过），并把剩余格子紧凑重排
+// 从 startIdx 起连续取 count 个未隐藏时次（被跳过/关闭的自动向后顺延补位）
+function visibleStepsForPage(startIdx, count) {
+  const sel = selected[0];
+  const out = [];
+  for (let i = startIdx; i < steps.length && out.length < count; i++) {
+    const s = steps[i];
+    if (!hiddenSteps.has(stepKey(sel, s))) out.push(s);
+  }
+  return out;
+}
+// 创建单产品模式的一张卡片（含加载图、角标、右上角关闭按钮）
+function makeSingleCell(sel, s, base, ctx) {
+  const url = buildUrlFor(sel.model, sel.type, dateStr, s);
+  const item = document.createElement('a');
+  item.className = 'grid-item';
+  item.dataset.step = s;
+  item.href = url; item.target = '_blank'; item.title = '新标签打开原图';
+  const loadDiv = document.createElement('div');
+  loadDiv.className = 'cell-load';
+  loadDiv.textContent = `加载中 +${pad(s,3)}h …`;
+  item.appendChild(loadDiv);
+  const img = document.createElement('img');
+  img.alt = url;
+  img.style.opacity = '0';
+  ctx.pending++;
+  img.onload = () => {
+    if (ctx.serial !== loadSerial) return;
+    loadDiv.remove();
+    img.style.opacity = '1';
+    if (--ctx.pending <= 0) showBadge(false);
+  };
+  img.onerror = () => {
+    if (ctx.serial !== loadSerial) return;
+    if (--ctx.pending <= 0) showBadge(false);
+    removeSingleCell(item, s);
+  };
+  img.src = url;
+  item.appendChild(img);
+  const badge = document.createElement('div');
+  badge.className = 'badge';
+  const sp1 = document.createElement('span'); sp1.textContent = `${sel.type.label} +${pad(s,3)}h`;
+  const sp2 = document.createElement('span'); sp2.className = 'vt'; sp2.textContent = formatValidTime(base, s);
+  badge.appendChild(sp1); badge.appendChild(sp2);
+  item.appendChild(badge);
+  // 右上角 × 手动关闭这一张
+  const close = document.createElement('span');
+  close.className = 'close-btn';
+  close.textContent = '×';
+  close.title = '关闭这一张';
+  close.onclick = (e) => { e.preventDefault(); e.stopPropagation(); removeSingleCell(item, s); };
+  item.appendChild(close);
+  return item;
+}
+// 移除某一张（手动关闭或加载失败自动跳过），并从后续时次自动补位保持满格
 function removeSingleCell(item, s) {
   if (!item || !item.parentNode) return;
   const sel = selected[0];
@@ -672,13 +727,35 @@ function removeSingleCell(item, s) {
   [...strip.querySelectorAll('a')].forEach(a => {
     if (a.textContent === `+${pad(s,3)}h`) a.remove();
   });
-  recompactSingle();
+  fillNextCell(sel);
+}
+// 把后续时次的图补进当前页（始终显示满）；无可补时次则紧凑重排
+function fillNextCell(sel) {
+  const grid = document.getElementById('grid');
+  const shown = new Set([...grid.querySelectorAll('.grid-item')].map(it => parseInt(it.dataset.step)));
+  const next = steps.find(s => !hiddenSteps.has(stepKey(sel, s)) && !shown.has(s));
+  if (next === undefined) { recompactSingle(); return; }
+  const base = parseDate(dateStr);
+  const item = makeSingleCell(sel, next, base, { serial: loadSerial, pending: 0 });
+  grid.appendChild(item);
+  updateSingleInfo();
+}
+function updateSingleInfo() {
+  const grid = document.getElementById('grid');
+  const items = [...grid.querySelectorAll('.grid-item')];
+  if (!items.length) return;
+  const base = parseDate(dateStr);
+  const stepsNow = items.map(it => parseInt(it.dataset.step)).sort((a, b) => a - b);
+  const t0 = formatValidTime(base, stepsNow[0]);
+  const t1 = formatValidTime(base, stepsNow[stepsNow.length-1]);
+  setStepbar('步长范围', `+${pad(stepsNow[0],3)} ~ +${pad(stepsNow[stepsNow.length-1],3)} h`,
+             '对应 UTC 时间', stepsNow.length > 1 ? `${t0} ～ ${t1}` : t0,
+             '页码', `${currentPage+1} / ${pageCount()}`);
 }
 function recompactSingle() {
   const grid = document.getElementById('grid');
   if (!grid) return;
   const items = [...grid.querySelectorAll('.grid-item')];
-  const base = parseDate(dateStr);
   if (!items.length) {
     grid.classList.remove('show');
     const empty = document.getElementById('emptyState');
@@ -695,12 +772,7 @@ function recompactSingle() {
   const { cols, rows } = layoutFor(n);
   grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
   grid.style.gridTemplateRows    = `repeat(${rows}, 1fr)`;
-  const stepsNow = items.map(it => parseInt(it.dataset.step)).sort((a, b) => a - b);
-  const t0 = formatValidTime(base, stepsNow[0]);
-  const t1 = formatValidTime(base, stepsNow[stepsNow.length-1]);
-  setStepbar('步长范围', `+${pad(stepsNow[0],3)} ~ +${pad(stepsNow[stepsNow.length-1],3)} h`,
-             '对应 UTC 时间', stepsNow.length > 1 ? `${t0} ～ ${t1}` : t0,
-             '页码', `${currentPage+1} / ${pageCount()}`);
+  updateSingleInfo();
 }
 function renderGrid() {
   if (!steps.length) return;
@@ -715,9 +787,8 @@ function renderSingle(serial) {
   const pages = pageCount();
   if (currentPage >= pages) currentPage = pages - 1;
   const start     = currentPage * gridSize;
-  const pageSteps = steps.slice(start, start + gridSize);
-  // 跳过已关闭 / 已失败自动隐藏的时次
-  const visSteps  = pageSteps.filter(s => !hiddenSteps.has(stepKey(sel, s)));
+  // 取满 gridSize 张：被跳过/关闭的时次自动向后顺延补位
+  const visSteps  = visibleStepsForPage(start, gridSize);
 
   const grid  = document.getElementById('grid');
   const empty = document.getElementById('emptyState');
@@ -771,48 +842,9 @@ function renderSingle(serial) {
   grid.classList.add('show');
 
   showBadge(true);
-  let pending = visSteps.length;
+  const ctx = { serial, pending: 0 };
   visSteps.forEach(s => {
-    const url = buildUrlFor(sel.model, sel.type, dateStr, s);
-    const item = document.createElement('a');
-    item.className = 'grid-item';
-    item.dataset.step = s;
-    item.href = url; item.target = '_blank'; item.title = '新标签打开原图';
-    const loadDiv = document.createElement('div');
-    loadDiv.className = 'cell-load';
-    loadDiv.textContent = `加载中 +${pad(s,3)}h …`;
-    item.appendChild(loadDiv);
-    const img = document.createElement('img');
-    img.alt = url;
-    img.style.opacity = '0';
-    img.onload = () => {
-      if (serial !== loadSerial) return;
-      loadDiv.remove();
-      img.style.opacity = '1';
-      if (--pending <= 0) showBadge(false);
-    };
-    img.onerror = () => {
-      if (serial !== loadSerial) return;
-      if (--pending <= 0) showBadge(false);
-      // 该时次图片未发布：自动跳过这一张，其余紧凑重排
-      removeSingleCell(item, s);
-    };
-    img.src = url;
-    item.appendChild(img);
-    const badge = document.createElement('div');
-    badge.className = 'badge';
-    const sp1 = document.createElement('span'); sp1.textContent = `${sel.type.label} +${pad(s,3)}h`;
-    const sp2 = document.createElement('span'); sp2.className = 'vt'; sp2.textContent = formatValidTime(base, s);
-    badge.appendChild(sp1); badge.appendChild(sp2);
-    item.appendChild(badge);
-    // 右上角 × 手动关闭这一张
-    const close = document.createElement('span');
-    close.className = 'close-btn';
-    close.textContent = '×';
-    close.title = '关闭这一张';
-    close.onclick = (e) => { e.preventDefault(); e.stopPropagation(); removeSingleCell(item, s); };
-    item.appendChild(close);
-    grid.appendChild(item);
+    grid.appendChild(makeSingleCell(sel, s, base, ctx));
   });
   requestAnimationFrame(() => {
     if (serial !== loadSerial) return;
