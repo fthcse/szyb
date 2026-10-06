@@ -49,13 +49,23 @@
       font-family:inherit; margin-bottom:12px; transition:all .12s;
     }
     .clear-btn:hover { border-color:#ff6b6b; color:#ff8a8a; background:rgba(239,68,68,.08); }
-    .group-block { margin-bottom:14px; }
-    .group-title {
-      font-size:.7rem; color:var(--txt3); font-weight:700;
+    .group-block { margin-bottom:6px; }
+    .group-toggle {
+      display:flex; align-items:center; gap:6px; width:100%;
+      background:none; border:none; cursor:pointer; font-family:inherit;
+      font-size:.72rem; color:var(--txt3); font-weight:700;
       letter-spacing:.4px; text-transform:uppercase;
-      padding:4px 4px 6px; border-bottom:1px solid var(--line); margin-bottom:6px;
+      padding:5px 4px; border-bottom:1px solid var(--line); margin-bottom:6px;
+      transition:color .15s;
     }
-    .group-block.active .group-title { color:var(--accent2); }
+    .group-toggle:hover { color:var(--accent2); }
+    .group-toggle .caret {
+      display:inline-block; font-size:.62rem; color:var(--accent);
+      transition:transform .15s; flex-shrink:0;
+    }
+    .group-block.collapsed .group-toggle .caret { transform:rotate(-90deg); }
+    .group-block.collapsed .prod-list { display:none; }
+    .group-block.active .group-toggle { color:var(--accent2); }
     .prod-list { display:flex; flex-direction:column; gap:3px; }
     .prod-btn {
       text-align:left; background:var(--panel2); border:1px solid var(--line);
@@ -246,7 +256,7 @@
   <span class="icon">🌀</span>
   <div>
     <h1>广东多模式气象预报查看器</h1>
-    <p>ECMWF / GTRAMS3KMEC / GRAPES9 / ECMWF‑Fine 华南产品·单产品多时次/多产品对比·请勿随意外传数值产品</p>
+    <p>ECMWF / GTRAMS3KMEC / GRAPES9 / ECMWF‑Fine 华南产品·单产品多时次 / 多产品对比·请勿随意外传数值产品</p>
   </div>
 </header>
 <div class="app-body">
@@ -349,6 +359,7 @@ const ECMWF_HN = [
   { id: 'hghtwind200', label: '200高度',    fileKey: 'wind200stream200hght200',   startStep:0, stepInterval:3 },
   { id: 'hghtwind500', label: '500高度',    fileKey: 'wind500hght500temp500',     startStep:0, stepInterval:3 },
   { id: 'wind850',     label: '850风',      fileKey: 'wind850hght500',            startStep:0, stepInterval:3 },
+  { id: 'wind925',     label: '925风',      fileKey: 'wind925',                    startStep:0, stepInterval:3 },
   { id: 'rhum700',     label: '700RH',      fileKey: 'rhum700',                   startStep:0, stepInterval:3 },
   { id: 'rhum850',     label: '850RH',      fileKey: 'rhum850',                   startStep:0, stepInterval:3 },
   { id: 'vflux925',    label: '925水汽',    fileKey: 'vflux925',                  startStep:0, stepInterval:3 },
@@ -487,13 +498,15 @@ function buildSidebar() {
   clearBtn.textContent = '✕ 清空已选产品';
   clearBtn.onclick = clearSelection;
   wrap.appendChild(clearBtn);
-  GROUPS.forEach(g => {
+  GROUPS.forEach((g, gi) => {
     const block = document.createElement('div');
     block.className = 'group-block';
     block.dataset.group = g.id;
-    const title = document.createElement('div');
-    title.className = 'group-title';
-    title.textContent = g.title;
+    const title = document.createElement('button');
+    title.type = 'button';
+    title.className = 'group-title group-toggle';
+    title.innerHTML = `<span class="caret">▾</span>${g.title}`;
+    title.onclick = () => block.classList.toggle('collapsed');
     const list = document.createElement('div');
     list.className = 'prod-list';
     g.items.forEach(type => {
@@ -505,6 +518,7 @@ function buildSidebar() {
     });
     block.appendChild(title);
     block.appendChild(list);
+    if (gi > 0) block.classList.add('collapsed');
     wrap.appendChild(block);
   });
   updateSidebar();
