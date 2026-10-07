@@ -272,6 +272,7 @@
         <select id="hourSelect">
           <option value="00">00 Z</option>
           <option value="12">12 Z</option>
+          <option value="18">18 Z</option>
         </select>
       </div>
       <div class="control-group">
@@ -388,7 +389,7 @@ const GRAPES9_HN = [
   { id: 'hghtwind200', label: '200高度',    fileKey: 'wind200stream200hght200',   startStep:0, stepInterval:3 },
   { id: 'rhum850',     label: '850RH',      fileKey: 'rhum850',                   startStep:0, stepInterval:3 },
   { id: 'hghtwind500', label: '500高度',    fileKey: 'wind500hght500temp500',     startStep:0, stepInterval:3 },
-  { id: 'kindex',      label: 'K指数',      fileKey: 'kindex',                    startStep:0, stepInterval:3 },
+  { id: 'kindex',      label: 'K指数',      fileKey: 'kiki',                     startStep:0, stepInterval:3 },
   { id: 'rain24',      label: '24h降水',    fileKey: 'rain24',                    startStep:24, stepInterval:24 },
   { id: 'wind10m',     label: '10风',       fileKey: 'wind10m',                   startStep:0, stepInterval:3 },
   { id: 'wind850',     label: '850风',      fileKey: 'wind850hght500',            startStep:0, stepInterval:3 },
@@ -465,7 +466,7 @@ function buildUrlFor(model, type, dateHH, stepH) {
   }
   // 资料目录按发布规则组织：12Z 起报的图片目录日期 = 起报UTC日期 + 1 天（00Z 用当天）
   let dirDate = dateHH.slice(0, 8);
-  if (dateHH.slice(8, 10) === '12') {
+  if (dateHH.slice(8, 10) === '12' || dateHH.slice(8, 10) === '18') {
     const d = new Date(Date.UTC(+dateHH.slice(0,4), +dateHH.slice(4,6)-1, +dateHH.slice(6,8)));
     d.setUTCDate(d.getUTCDate() + 1);
     dirDate = `${d.getUTCFullYear()}${pad(d.getUTCMonth()+1)}${pad(d.getUTCDate())}`;
