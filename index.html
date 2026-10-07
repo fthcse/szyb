@@ -272,12 +272,13 @@
         <select id="hourSelect">
           <option value="00">00 Z</option>
           <option value="12">12 Z</option>
-          <option value="18">18 Z</option>
+          <option value="18">18 Z·TRAMS才有</option>
         </select>
       </div>
       <div class="control-group">
         <label>最大预报步长</label>
         <select id="maxStepSelect">
+          <option value="96">96 h</option>
           <option value="120">120 h</option>
           <option value="240" selected>240 h</option>
           <option value="360">360 h</option>
@@ -303,9 +304,9 @@
       <div class="control-group">
         <label>同时显示（张）</label>
         <select id="gridSizeSelect">
-          <option value="1">1 张</option>
+          <option value="1" selected>1 张</option>
           <option value="2">2 张</option>
-          <option value="4" selected>4 张</option>
+          <option value="4">4 张</option>
           <option value="6">6 张</option>
           <option value="8">8 张</option>
           <option value="10">10 张</option>
@@ -350,7 +351,7 @@
 <div class="err-toast" id="errToast"></div>
 <script>
 // ===================== 产品定义（保持原样） =====================
-// ECMWF‑HN：降雨保持原间隔，其余非降雨全部改为3h间隔；删除850水汽vflux850
+// ECMWF‑HN：降雨保持原间隔，其余非降雨全部改为3h间隔
 const ECMWF_HN = [
   { id: 'mslp',        label: '地面气压',    fileKey: 'mslp',                      startStep:0, stepInterval:3 },
   { id: 'rain3',       label: '3h降水',     fileKey: 'rain3',                     startStep:3, stepInterval:3 },
@@ -361,7 +362,6 @@ const ECMWF_HN = [
   { id: 'hghtwind500', label: '500高度',    fileKey: 'wind500hght500temp500',     startStep:0, stepInterval:3 },
   { id: 'wind850',     label: '850风',      fileKey: 'wind850hght500',            startStep:0, stepInterval:3 },
   { id: 'wind925',     label: '925风',      fileKey: 'wind925',                    startStep:0, stepInterval:3 },
-  { id: 'rhum700',     label: '700RH',      fileKey: 'rhum700',                   startStep:0, stepInterval:3 },
   { id: 'rhum850',     label: '850RH',      fileKey: 'rhum850',                   startStep:0, stepInterval:3 },
   { id: 'vflux925',    label: '925水汽',    fileKey: 'vflux925',                  startStep:0, stepInterval:3 },
   { id: 'cape',        label: 'CAPE',       fileKey: 'cape',                      startStep:0, stepInterval:3 }
@@ -394,8 +394,8 @@ const GRAPES9_HN = [
   { id: 'wind10m',     label: '10风',       fileKey: 'wind10m',                   startStep:0, stepInterval:3 },
   { id: 'wind850',     label: '850风',      fileKey: 'wind850hght500',            startStep:0, stepInterval:3 },
   { id: 'rhum700',     label: '700RH',      fileKey: 'rhum700',                   startStep:0, stepInterval:3 },
-  { id: 'typhoon_track', label:'台风路径',  fileKey:'typhoon_track',              startStep:0, stepInterval:6 },
-  { id: 'typhoon_intensity', label:'台风强度',fileKey:'typhoon_intensity',        startStep:0, stepInterval:6 }
+  { id: 'typhoon_track', label:'台风路径(暂无)',  fileKey:'typhoon_track',              startStep:0, stepInterval:6 },
+  { id: 'typhoon_intensity', label:'台风强度(暂无)',fileKey:'typhoon_intensity',        startStep:0, stepInterval:6 }
 ];
 // ECMWF‑Fine华南产品（hn）【新增总云量tcdc】
 const TRAMS_HN = [
@@ -414,12 +414,12 @@ const TRAMS_HN = [
   { id: 'rhum700',     label: '700hPa相对湿度',    fileKey:'rhum700',         folder:'rhum700',      region:'hn', startStep:0, stepInterval:24 },
   { id: 'temp925wind925', label: '925hPa风+温度', fileKey:'temp925wind925', folder:'temp925wind925',region:'hn', startStep:0, stepInterval:24 },
   { id: 'rhum925',     label: '925hPa相对湿度',    fileKey:'rhum925',         folder:'rhum925',      region:'hn', startStep:0, stepInterval:24 },
-  //新增总云量
   { id: 'tcdc',        label: '总云量',            fileKey:'tcdc',            folder:'tcdc',         region:'gd', startStep:0, stepInterval:24 },
-  // 广东累计降水产品保留
-  { id: 'rain24',  label: '24h累计降水', fileKey:'rain24', folder:'rain24', region:'gd', startStep:24,  stepInterval:24 },
-  { id: 'rain48',  label: '48h累计降水', fileKey:'rain48', folder:'rain24', region:'gd', startStep:48,  stepInterval:24 },
-  { id: 'rain72',  label: '72h累计降水', fileKey:'rain72', folder:'rain24', region:'gd', startStep:72,  stepInterval:24 },
+  // 广东累计降水产品
+  { id: 'rain24',  label: '华南24h累计降水', fileKey:'rain24', folder:'rain24', region:'hn', startStep:24,  stepInterval:24 },
+  { id: 'rain24',  label: '1天(24h)累计降水', fileKey:'rain24', folder:'rain24', region:'gd', startStep:24,  stepInterval:24 },
+  { id: 'rain48',  label: '2天(48h)累计降水', fileKey:'rain48', folder:'rain24', region:'gd', startStep:48,  stepInterval:24 },
+  { id: 'rain72',  label: '3天(72h)累计降水', fileKey:'rain72', folder:'rain24', region:'gd', startStep:72,  stepInterval:24 },
   { id: 'rain120', label: '5天(120h)降水',fileKey:'rain120',folder:'rain24',region:'gd', startStep:120, stepInterval:24 },
   { id: 'rain168', label: '7天(168h)降水',fileKey:'rain168',folder:'rain24',region:'gd', startStep:168, stepInterval:24 },
   { id: 'rain240', label: '10天(240h)降水',fileKey:'rain240',folder:'rain24',region:'gd', startStep:240, stepInterval:24 },
@@ -428,9 +428,9 @@ const TRAMS_HN = [
 
 const GROUPS = [
   { id:'ecmwf',  short:'ECMWF',  title:'ECMWF‑HN',                                 items:ECMWF_HN },
-  { id:'gtrams', short:'GTRAMS', title:'GTRAMS3KMEC‑HN（000起步，非降雨1h间隔）',  items:GTRAMS_HN },
-  { id:'grapes9',short:'GRAPES9',title:'GRAPES9‑HN（非台风产品3h间隔）',            items:GRAPES9_HN },
-  { id:'trams',  short:'FINE',   title:'ECMWF‑Fine 华南产品（hn）',                 items:TRAMS_HN },
+  { id:'gtrams', short:'GTRAMS', title:'GTRAMS3KMEC‑HN',  items:GTRAMS_HN },
+  { id:'grapes9',short:'GRAPES9',title:'GRAPES9‑HN',            items:GRAPES9_HN },
+  { id:'trams',  short:'FINE',   title:'ECMWF‑Fine',                 items:TRAMS_HN },
 ];
 
 // ===================== 状态 =====================
