@@ -463,7 +463,14 @@ function buildUrlFor(model, type, dateHH, stepH) {
   if (model === "trams") {
     return `https://gd12121.com/wb/getfile/date/ecmwf_fine/${region}/${folder}/ecmwffine_${region}_${fileNameKey}_${pad(stepH,3)}_${cycleStr}.png`;
   }
-  const dateDash = `${dateHH.slice(0,4)}-${dateHH.slice(4,6)}-${dateHH.slice(6,8)}`;
+  // 资料目录按发布规则组织：12Z 起报的图片目录日期 = 起报UTC日期 + 1 天（00Z 用当天）
+  let dirDate = dateHH.slice(0, 8);
+  if (dateHH.slice(8, 10) === '12') {
+    const d = new Date(Date.UTC(+dateHH.slice(0,4), +dateHH.slice(4,6)-1, +dateHH.slice(6,8)));
+    d.setUTCDate(d.getUTCDate() + 1);
+    dirDate = `${d.getUTCFullYear()}${pad(d.getUTCMonth()+1)}${pad(d.getUTCDate())}`;
+  }
+  const dateDash = `${dirDate.slice(0,4)}-${dirDate.slice(4,6)}-${dirDate.slice(6,8)}`;
   let prefix;
   switch (model) {
     case "gtrams": prefix = "GTRAMS3KMEC_hn_"; break;
@@ -677,7 +684,7 @@ function setStepbar(l1, v1, l2, v2, l3, v3) {
 // ===================== 渲染网格 =====================
 // 已跳过/关闭的时次（单产品模式，跨翻页保持），键 = model:typeId:step
 let hiddenSteps = new Set();
-function stepKey(sel, s) { return `${sel.model}:${sel.type.id}:${s}`; }
+function stepKey(sel, s) { return `${sel.model}:${sel.type.id}:${dateStr}:${s}`; }
 // 从 startIdx 起连续取 count 个未隐藏时次（被跳过/关闭的自动向后顺延补位）
 function visibleStepsForPage(startIdx, count) {
   const sel = selected[0];
