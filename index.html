@@ -256,7 +256,7 @@
   <span class="icon">🌀</span>
   <div>
     <h1>广东多模式气象预报查看器</h1>
-    <p>ECMWF / GTRAMS3KMEC / GRAPES9 / ECMWF‑Fine 华南产品·单产品多时次 / 多产品对比·请勿随意外传数值产品！（推荐电脑端浏览器使用本平台）</p>
+    <p>ECMWF / CMA-GD / CMA-TRAMS / ECMWF‑Fine 华南产品·单产品多时次 / 多产品对比·请勿随意外传数值产品！（推荐电脑端浏览器使用本平台）</p>
   </div>
 </header>
 <div class="app-body">
@@ -403,7 +403,8 @@ const TRAMS_HN = [
   { id: 't2m',         label: '2米温度',           fileKey:'t2mm',            folder:'t2mm',         region:'hn', startStep:0, stepInterval:24 },
   { id: 't2mmax',      label: '日高温',            fileKey:'t2mm-max',        folder:'t2mm-max',     region:'hn', startStep:24, stepInterval:24 },
   { id: 't2mmin',      label: '日低温',            fileKey:'t2mm-min',        folder:'t2mm-min',     region:'hn', startStep:24, stepInterval:24 },
-  { id: 'wind10m',     label: '10米风',            fileKey:'wind10m',         folder:'wind10m',      region:'hn', startStep:0, stepInterval:24 },
+  { id: 'wind10m',     label: '广东10米风',        fileKey:'wind10m',         folder:'wind10m',      region:'gd', startStep:0, stepInterval:24 },
+  { id: 'wind10m',     label: '华南10米风',        fileKey:'wind10m',         folder:'wind10m',      region:'hn', startStep:0, stepInterval:24 },
   { id: 'wind200',     label: '200hPa风',         fileKey:'wind200',         folder:'wind200',      region:'hn', startStep:0, stepInterval:24 },
   { id: 'hghtwind500', label: '500hPa高度(副高)', fileKey:'hghtwind500',     folder:'hghtwind500',  region:'hn', startStep:0, stepInterval:24 },
   { id: 'rhum500',     label: '500hPa相对湿度',    fileKey:'rhum500',         folder:'rhum500',      region:'hn', startStep:0, stepInterval:24 },
@@ -428,8 +429,8 @@ const TRAMS_HN = [
 
 const GROUPS = [
   { id:'ecmwf',  short:'ECMWF',  title:'ECMWF‑HN',                                 items:ECMWF_HN },
-  { id:'gtrams', short:'GTRAMS', title:'GTRAMS3KMEC‑HN',  items:GTRAMS_HN },
-  { id:'grapes9',short:'GRAPES9',title:'GRAPES9‑HN',            items:GRAPES9_HN },
+  { id:'gtrams', short:'CMA-GD', title:'CMA-GD',  items:GTRAMS_HN },
+  { id:'grapes9',short:'CMA-TRAMS',title:'CMA-TRAMS',            items:GRAPES9_HN },
   { id:'trams',  short:'FINE',   title:'ECMWF‑Fine',                 items:TRAMS_HN },
 ];
 
