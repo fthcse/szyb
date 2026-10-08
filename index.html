@@ -431,13 +431,13 @@ const GROUPS = [
   { id:'ecmwf',  short:'ECMWF',  title:'ECMWF‑HN',                                 items:ECMWF_HN },
   { id:'gtrams', short:'CMA-GD', title:'CMA-GD',  items:GTRAMS_HN },
   { id:'grapes9',short:'CMA-TRAMS',title:'CMA-TRAMS',            items:GRAPES9_HN },
-  { id:'trams',  short:'FINE',   title:'ECMWF‑Fine',                 items:TRAMS_HN },
+  { id:'trams',  short:'ECMWF',   title:'ECMWF‑Fine',                 items:TRAMS_HN },
 ];
 
 // ===================== 状态 =====================
 let mode       = 'single';   // single=单产品多时次 / multi=多产品对比
 let selected   = [{ model:'ecmwf', type:ECMWF_HN[0] }];
-let gridSize   = 4;          // 单产品模式：每页同时显示的时次数1/2/4/6/8
+let gridSize   = 1;          // 单产品模式：每页同时显示的时次数1/2/4/6/8
 let steps      = [];         // 时次序列
 let currentIdx = 0;          // multi 模式：当前时次序号
 let currentPage = 0;         // single 模式：当前页号
