@@ -256,7 +256,7 @@
   <span class="icon">🌀</span>
   <div>
     <h1>广东多模式气象预报查看器</h1>
-    <p>ECMWF / CMA-GD / CMA-TRAMS / ECMWF‑Fine 华南产品·单产品多时次 / 多产品对比·请勿随意外传数值产品！（推荐电脑端浏览器使用本平台）</p>
+    <p>ECMWF / GTRAMS3KMEC / GRAPES9 / ECMWF‑Fine 华南产品·单产品多时次 / 多产品对比·请勿随意外传数值产品</p>
   </div>
 </header>
 <div class="app-body">
@@ -304,7 +304,7 @@
       <div class="control-group">
         <label>同时显示（张）</label>
         <select id="gridSizeSelect">
-          <option value="1"selected>1 张</option>
+          <option value="1" selected>1 张</option>
           <option value="2">2 张</option>
           <option value="4">4 张</option>
           <option value="6">6 张</option>
@@ -351,7 +351,7 @@
 <div class="err-toast" id="errToast"></div>
 
 <footer>特别提醒！请勿随意外传本产品到公众平台！</footer>
-  
+
 <script>
 // ===================== 产品定义（保持原样） =====================
 // ECMWF‑HN：降雨保持原间隔，其余非降雨全部改为3h间隔
@@ -406,7 +406,6 @@ const TRAMS_HN = [
   { id: 't2m',         label: '2米温度',           fileKey:'t2mm',            folder:'t2mm',         region:'hn', startStep:0, stepInterval:24 },
   { id: 't2mmax',      label: '日高温',            fileKey:'t2mm-max',        folder:'t2mm-max',     region:'hn', startStep:24, stepInterval:24 },
   { id: 't2mmin',      label: '日低温',            fileKey:'t2mm-min',        folder:'t2mm-min',     region:'hn', startStep:24, stepInterval:24 },
-  { id: 'wind10m',     label: '广东10米风',        fileKey:'wind10m',         folder:'wind10m',      region:'gd', startStep:0, stepInterval:24 },
   { id: 'wind10m',     label: '10米风',            fileKey:'wind10m',         folder:'wind10m',      region:'hn', startStep:0, stepInterval:24 },
   { id: 'wind200',     label: '200hPa风',         fileKey:'wind200',         folder:'wind200',      region:'hn', startStep:0, stepInterval:24 },
   { id: 'hghtwind500', label: '500hPa高度(副高)', fileKey:'hghtwind500',     folder:'hghtwind500',  region:'hn', startStep:0, stepInterval:24 },
@@ -432,15 +431,15 @@ const TRAMS_HN = [
 
 const GROUPS = [
   { id:'ecmwf',  short:'ECMWF',  title:'ECMWF‑HN',                                 items:ECMWF_HN },
-  { id:'gtrams', short:'CMA-GD', title:'CMA-GD',  items:GTRAMS_HN },
-  { id:'grapes9',short:'CMA-TRAMS',title:'CMA-TRAMS',            items:GRAPES9_HN },
-  { id:'trams',  short:'ECMWF',   title:'ECMWF‑Fine',                 items:TRAMS_HN },
+  { id:'gtrams', short:'GTRAMS', title:'GTRAMS3KMEC‑HN',  items:GTRAMS_HN },
+  { id:'grapes9',short:'GRAPES9',title:'GRAPES9‑HN',            items:GRAPES9_HN },
+  { id:'trams',  short:'FINE',   title:'ECMWF‑Fine',                 items:TRAMS_HN },
 ];
 
 // ===================== 状态 =====================
 let mode       = 'single';   // single=单产品多时次 / multi=多产品对比
-let selected   = [{ model:'ecmwf', type:ECMWF_HN[0] }];
-let gridSize   = 1;          // 单产品模式：每页同时显示的时次数1/2/4/6/8
+let selected   = [];
+let gridSize   = 4;          // 单产品模式：每页同时显示的时次数1/2/4/6/8
 let steps      = [];         // 时次序列
 let currentIdx = 0;          // multi 模式：当前时次序号
 let currentPage = 0;         // single 模式：当前页号
@@ -551,7 +550,7 @@ function buildSidebar() {
     });
     block.appendChild(title);
     block.appendChild(list);
-    if (gi > 0) block.classList.add('collapsed');
+    block.classList.add('collapsed'); // 打开时全部产品组折叠
     wrap.appendChild(block);
   });
   updateSidebar();
